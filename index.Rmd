@@ -9,13 +9,14 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
+- Repo URL : https://github.com/ngocbd/Practical-Machine-Learning/
+- Pages URL : http://ngocbd.github.io/Practical-Machine-Learning/
 
 ###  Predictive Model For Determining Fitness Exercise Correctness
 
 ## Introduction
 
-Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. 
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. 
 
 In this reasearch, I build a predictive model to determine whether a particular form of exercise (barbell lifting) is performed correctly. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
 
@@ -33,8 +34,6 @@ if (! file.exists('pml-testing.csv')) {
 
 pmltraining <- read.csv('pml-training.csv')
 pmltesting <- read.csv('pml-testing.csv')
-
-
 ```
 
 ## Cleaning Data
@@ -64,10 +63,21 @@ cols <- c(cols, 'classe')
 pmltraining <- pmltraining[, cols]
 ```
 
-## Predictive Model
+## Data split traning and validate set
+
 ```{r}
+echo = FALSE
 library(randomForest)
 library(caret)
+validateIndex <- createDataPartition(y=pmltraining$classe, p=0.8, list=FALSE)
+pmltraining <- pmltraining[validateIndex,]
+validate <- pmltraining[-validateIndex,]
+```
+
+
+## Predictive Model
+I use two model importance features only  and One vs All model . 
+```{r}
 
 set.seed(1984)
 model <- randomForest(classe ~ ., data = pmltraining, ntree=2000, importance = T)
@@ -75,15 +85,19 @@ imp = data.frame(model$importance)
 features = order(-imp$MeanDecreaseGini)
 inImp = createDataPartition(pmltraining$classe, p = 0.05, list = F)
 featurePlot(pmltraining[inImp,features[1:4]],pmltraining$classe[inImp], plot = "pairs")
-predict(model, pmltesting)
-
-```
-###
-```{r}
 importanceOnlyModel <- randomForest(classe ~ pitch_belt+yaw_belt+total_accel_belt+gyros_belt_x, data = pmltraining, ntree=2000, importance = T)
-
+```
+### Predict
+```{r}
+predict(model, pmltesting)
 predict(importanceOnlyModel, pmltesting)
+```
+
+### Cross validation 
+```{r}
+confusionMatrix(validate$classe, predict(model,validate))
+confusionMatrix(validate$classe, predict(importanceOnlyModel,validate))
 ```
 ## Conclusion
 
-If don't know the data is nonlinear or not .The best way is use the random forest to discover the most important features. Predictive model with with only importance features get 85% accuracy .
+If don't know the data is nonlinear or not .The best way is use the random forest to discover the most important features. Predictive model with with importance features only get 98.5% accuracy on validate set .Model using  RandomForest on all features get 100% accuracy on validate set.
